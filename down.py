@@ -1,4 +1,3 @@
-from audioop import mul
 from os import system
 from bs4 import BeautifulSoup
 import requests
