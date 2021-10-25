@@ -1,39 +1,48 @@
+from audioop import mul
 from os import system
 from bs4 import BeautifulSoup
 import requests
 import multitasking
-
-chunk_size = 1024*512
+chunk_size = 1024*1024*2
 
 headers = {
-    'User-Agent':'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4642.0 Safari/537.36 Edg/96.0.1025.0',
-    'Host':'upos-sz-mirrorcos.bilivideo.com',
-    'Connection':'keep-alive',
-    'Origin':'https://www.bilibili.com',
-    'Accept':'*/*',
-    'Sec-Fetch-Dest':'empty',
-    'Sec-Fetch-Mode':'cors',
-    'Accept-Encoding':'identity',
-    'Accept-Language':'zh-CH,zh;q=0.9'
+    'accept':'*/*',
+    'accept-encoding':'identity;q=1, *;q=0',
+    'accept-language':'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+    #'referer':'link',
+    'sec-ch-ua':'''" Not A;Brand";v="99", "Chromium";v="96", "Microsoft Edge";v="96"''',
+    'sec-ch-us-mobile':'?0',
+    'sec-ch-ua-platform':'''"macOS"''',
+    'sec-fatch-dist':'video',
+    'sec-fetch-mode':'no-cors',
+    'sec-fatch-site':'same-origin',
+    'user-agent':'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.1047.0 Safari/537.36 Edg/96.0.1047.0'
 }
 
+#driver = WebDriver()
 session = requests.session()
 
 @multitasking.task
 def bchunk(lnk, chunk):
-    headers['Range'] = 'bytes=%s-%s'%(chunk[0], chunk[1])
+    global headers
+    headers['Content-Range'] = 'bytes=%s-%s'%(chunk[0], chunk[1])
     resp = session.get(lnk, headers = headers).content
     finalArr[chunk[2]] = resp
 
 def getchunk(lnk):
     sz = requests.head(lnk, headers = headers).headers.get('Content-Length')
+    print(sz)
     cnt = 0
     if sz is not None:
         sz = int(sz)
         chunks = []
         for start in range(0, sz, chunk_size):
-            chunks.append((start, min(start+chunk_size, sz), cnt))
+            if start+chunk_size-1 >= sz:
+                chunks.append((start, '', cnt))
+            else:
+                chunks.append((start, start+chunk_size-1, cnt))
             cnt = cnt + 1
+        print('num %s'%(cnt))
         return chunks
     else:
         print('Wrong no multi')
@@ -57,7 +66,7 @@ def chunkd(lnk, name):
         f.write(finalVid)
 
 def down(lnk, preferrnm):
-    headers['Referer'] = lnk
+    global headers
     lnk = lnk.replace('www.bilibili.com', 'www.ibilibili.com')
     res = requests.get(lnk).text
     bs = BeautifulSoup(res, features = 'html.parser')
@@ -66,6 +75,9 @@ def down(lnk, preferrnm):
     aid = lst[0]['value']
     cid = lst[1]['value']
     final = requests.get('https://api.bilibili.com/x/player/playurl?avid=%s&cid=%s&qn=1&type=&otype=json&platform=html5&high_quality=1'%(aid, cid)).json()['data']['durl'][0]['url'].replace(r'\u0026', '&')
+    print(final)
+    headers['referer'] = final
     chunkd(final, name)
 
+#print(len('https://upos-sz-mirrorhw.bilivideo.com'))
 down('https://www.bilibili.com/video/BV1x64y167hh?spm_id_from=333.999.0.0', '1')
