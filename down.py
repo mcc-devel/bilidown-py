@@ -2,6 +2,7 @@ from os import system
 from bs4 import BeautifulSoup
 import requests
 import multitasking
+import re
 chunk_size = 1024*1024*2
 
 headers = {
@@ -64,9 +65,11 @@ def chunkd(lnk, name):
     with open(name, 'wb') as f:
         f.write(finalVid)
 
-def down(lnk, preferrnm):
+def down(lnk:str, preferrnm):
     global headers
     lnk = lnk.replace('www.bilibili.com', 'www.ibilibili.com')
+    reres = re.match("https?://www.ibilibili.com/video/(av|AV|bv|BV)([0-9]|[a-z]|[A-Z])*", lnk)
+    lnk = reres.group()
     res = requests.get(lnk).text
     bs = BeautifulSoup(res, features = 'html.parser')
     name = preferrnm + '.mp4'
@@ -74,9 +77,7 @@ def down(lnk, preferrnm):
     aid = lst[0]['value']
     cid = lst[1]['value']
     final = requests.get('https://api.bilibili.com/x/player/playurl?avid=%s&cid=%s&qn=1&type=&otype=json&platform=html5&high_quality=1'%(aid, cid)).json()['data']['durl'][0]['url'].replace(r'\u0026', '&')
-    print(final)
     headers['referer'] = final
     chunkd(final, name)
 
-#print(len('https://upos-sz-mirrorhw.bilivideo.com'))
-down('https://www.bilibili.com/video/BV1x64y167hh?spm_id_from=333.999.0.0', '1')
+down('https://www.bilibili.com/video/BV1ys411W7rd?afasdgabesdfasDgfaszxvj', '1')
